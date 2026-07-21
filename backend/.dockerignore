@@ -1,0 +1,14 @@
+.idea
+**/bin
+**/obj
+**/node_modules
+**/.next
+.local
+.pnpm-store
+coverage
+playwright-report
+test-results
+.env
+.git
+frontend
+AGENTS.md

@@ -1,0 +1,174 @@
+name: eduhub-backend
+
+x-api-image: &api-image
+  image: eduhub-api:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+x-api-security: &api-security
+  init: true
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  tmpfs:
+    - /tmp:size=128m,mode=1777
+  networks:
+    - eduhub
+
+services:
+  eduhub-api:
+    <<: [*api-image, *api-security]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      Auth__Jwt__Issuer: ${Auth__Jwt__Issuer:?JWT issuer is required}
+      Auth__Jwt__Audience: ${Auth__Jwt__Audience:?JWT audience is required}
+      Auth__Jwt__Secret: ${Auth__Jwt__Secret:?JWT secret is required}
+      Auth__Jwt__AccessTokenMinutes: ${Auth__Jwt__AccessTokenMinutes:-15}
+      Auth__Jwt__RefreshTokenDays: ${Auth__Jwt__RefreshTokenDays:-7}
+      Auth__DevelopmentSeed__Enabled: "false"
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-eduhub};Username=${POSTGRES_USER:-eduhub};Password=${POSTGRES_PASSWORD:?PostgreSQL password is required}
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Redis password is required}
+      ConnectionStrings__Mongo: mongodb://${MONGO_INITDB_ROOT_USERNAME:-eduhub}:${MONGO_INITDB_ROOT_PASSWORD:?MongoDB password is required}@mongodb:27017/?authSource=admin
+      Audit__Mongo__Enabled: ${Audit__Mongo__Enabled:-true}
+      Audit__Mongo__DatabaseName: ${Audit__Mongo__DatabaseName:-eduhub_audit}
+      Audit__Mongo__CollectionName: ${Audit__Mongo__CollectionName:-audit_logs}
+      Audit__Mongo__RetentionDays: ${Audit__Mongo__RetentionDays:-90}
+      Audit__Mongo__ServerSelectionTimeoutMilliseconds: ${Audit__Mongo__ServerSelectionTimeoutMilliseconds:-1000}
+      Grades__AutoLockAfterDays: ${Grades__AutoLockAfterDays:-7}
+      Hangfire__DashboardEnabled: ${Hangfire__DashboardEnabled:-true}
+      Reports__StoragePath: /app/data/reports
+      MinistryApi__BaseUrl: ${MinistryApi__BaseUrl:-https://localhost:9443}
+      MinistryApi__ApiKey: ${MinistryApi__ApiKey:-}
+      MinistryApi__TimeoutSeconds: ${MinistryApi__TimeoutSeconds:-10}
+      MinistryApi__CircuitBreakerFailures: ${MinistryApi__CircuitBreakerFailures:-5}
+      MinistryApi__CircuitBreakerSeconds: ${MinistryApi__CircuitBreakerSeconds:-60}
+      Email__Smtp__Enabled: ${Email__Smtp__Enabled:-false}
+      Email__Smtp__Host: ${Email__Smtp__Host:-smtp.gmail.com}
+      Email__Smtp__Port: ${Email__Smtp__Port:-587}
+      Email__Smtp__SenderEmail: ${Email__Smtp__SenderEmail:-}
+      Email__Smtp__SenderName: ${Email__Smtp__SenderName:-EduHub}
+      Email__Smtp__Username: ${Email__Smtp__Username:-}
+      Email__Smtp__Password: ${Email__Smtp__Password:-}
+      EvidenceStorage__R2__ServiceUrl: ${EvidenceStorage__R2__ServiceUrl:-}
+      EvidenceStorage__R2__AccessKey: ${EvidenceStorage__R2__AccessKey:-}
+      EvidenceStorage__R2__SecretKey: ${EvidenceStorage__R2__SecretKey:-}
+      EvidenceStorage__R2__BucketName: ${EvidenceStorage__R2__BucketName:-eduhub-profile-evidence}
+      EvidenceStorage__LocalRootPath: /app/data/profile-evidence
+    depends_on:
+      eduhub-migrate:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    stop_grace_period: 20s
+    volumes:
+      - profile_evidence:/app/data/profile-evidence
+      - report_files:/app/data/reports
+
+  eduhub-migrate:
+    <<: [*api-image, *api-security]
+    entrypoint: ["dotnet", "/app/database-manager/EduHub.DatabaseManager.dll"]
+    command: ["migrate"]
+    environment:
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-eduhub};Username=${POSTGRES_USER:-eduhub};Password=${POSTGRES_PASSWORD:?PostgreSQL password is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  eduhub-seed:
+    <<: [*api-image, *api-security]
+    profiles: ["tools"]
+    entrypoint: ["dotnet", "/app/database-manager/EduHub.DatabaseManager.dll"]
+    command: ["seed"]
+    environment:
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-eduhub};Username=${POSTGRES_USER:-eduhub};Password=${POSTGRES_PASSWORD:?PostgreSQL password is required}
+      Auth__DevelopmentSeed__Email: ${Auth__DevelopmentSeed__Email:-admin@eduhub.local}
+      Auth__DevelopmentSeed__Password: ${Auth__DevelopmentSeed__Password:?Development seed password is required}
+      Auth__DevelopmentSeed__Role: ${Auth__DevelopmentSeed__Role:-SystemAdmin}
+    depends_on:
+      eduhub-migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-eduhub}
+      POSTGRES_USER: ${POSTGRES_USER:-eduhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?PostgreSQL password is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - eduhub
+
+  redis:
+    image: redis:7-alpine
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Redis password is required}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - eduhub
+
+  mongodb:
+    image: mongo:8
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-eduhub}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?MongoDB password is required}
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$${MONGO_INITDB_ROOT_USERNAME}\" --password \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"quit(db.adminCommand('ping').ok ? 0 : 2)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "127.0.0.1:${MONGO_HOST_PORT:-27018}:27017"
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - eduhub
+
+networks:
+  eduhub:
+    name: eduhub-dev
+
+volumes:
+  mongo_data:
+  postgres_data:
+  profile_evidence:
+  report_files:
+  redis_data:

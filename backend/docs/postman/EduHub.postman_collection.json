@@ -1,0 +1,258 @@
+{
+  "info": {
+    "name": "EduHub Full Happy Flow",
+    "description": "Full Postman flow: health, auth roles, academic seed data creation, enrollment, assignment, grade config, grade publish, parent read, integration sync.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) {",
+          "  pm.collectionVariables.set('runId', Date.now().toString().slice(-8));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "runId", "value": "" },
+    { "key": "academicToken", "value": "" },
+    { "key": "teacherToken", "value": "" },
+    { "key": "parentToken", "value": "" },
+    { "key": "teacherId", "value": "" },
+    { "key": "parentUserId", "value": "" },
+    { "key": "academicYearId", "value": "" },
+    { "key": "semesterId", "value": "" },
+    { "key": "subjectId", "value": "" },
+    { "key": "classRoomId", "value": "" },
+    { "key": "studentId", "value": "" },
+    { "key": "assignmentId", "value": "" },
+    { "key": "component1Id", "value": "" },
+    { "key": "component2Id", "value": "" },
+    { "key": "syncRecordId", "value": "00000000-0000-0000-0000-000000000000" }
+  ],
+  "item": [
+    {
+      "name": "00 Health",
+      "item": [
+        { "name": "Live", "request": { "method": "GET", "url": "{{baseUrl}}/health/live" } },
+        { "name": "Ready dependencies", "request": { "method": "GET", "url": "{{baseUrl}}/health/ready" } },
+        { "name": "Swagger JSON", "request": { "method": "GET", "url": "{{baseUrl}}/swagger/v1/swagger.json" } }
+      ]
+    },
+    {
+      "name": "01 Auth",
+      "item": [
+        {
+          "name": "Login AcademicAdmin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('academicToken', pm.response.json().data.accessToken);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"academic@eduhub.local\",\n  \"password\": \"Admin@123456\",\n  \"deviceId\": \"postman\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Login Teacher",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('teacherToken', pm.response.json().data.accessToken);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teacher@eduhub.local\",\n  \"password\": \"Admin@123456\",\n  \"deviceId\": \"postman\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Get Teacher Id",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('teacherId', pm.response.json().data.userId);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        },
+        {
+          "name": "Login Parent",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('parentToken', pm.response.json().data.accessToken);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"parent@eduhub.local\",\n  \"password\": \"Admin@123456\",\n  \"deviceId\": \"postman\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Get Parent Id",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('parentUserId', pm.response.json().data.userId);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{parentToken}}" }],
+            "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Academic Setup",
+      "item": [
+        {
+          "name": "Create Academic Year",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('academicYearId', pm.response.json().data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Year {{runId}}\",\n  \"startDate\": \"2026-08-01\",\n  \"endDate\": \"2027-05-31\"\n}" },
+            "url": "{{baseUrl}}/api/v1/academic-years"
+          }
+        },
+        {
+          "name": "Create Semester",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('semesterId', pm.response.json().data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"name\": \"HK1 {{runId}}\",\n  \"startDate\": \"2026-08-01\",\n  \"endDate\": \"2026-12-31\",\n  \"gradeEntryFrom\": \"2026-08-01\",\n  \"gradeEntryTo\": \"2026-12-20\"\n}" },
+            "url": "{{baseUrl}}/api/v1/semesters"
+          }
+        },
+        {
+          "name": "Create Subject",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('subjectId', pm.response.json().data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"subjectCode\": \"PM{{runId}}\",\n  \"name\": \"Postman Math\",\n  \"credits\": 3,\n  \"maxScore\": 10\n}" },
+            "url": "{{baseUrl}}/api/v1/subjects"
+          }
+        },
+        {
+          "name": "Create Class",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('classRoomId', pm.response.json().data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"classCode\": \"C{{runId}}\",\n  \"name\": \"Postman 10A\",\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"gradeLevel\": 10,\n  \"capacity\": 45\n}" },
+            "url": "{{baseUrl}}/api/v1/classes"
+          }
+        },
+        {
+          "name": "Create Student",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('studentId', pm.response.json().data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"studentCode\": \"S{{runId}}\",\n  \"fullName\": \"Postman Student\",\n  \"dateOfBirth\": \"2010-05-20\"\n}" },
+            "url": "{{baseUrl}}/api/v1/students"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Class Flow",
+      "item": [
+        {
+          "name": "Link Parent",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"relationship\": \"Cha/me\"\n}" },
+            "url": "{{baseUrl}}/api/v1/students/{{studentId}}/parents/{{parentUserId}}"
+          }
+        },
+        {
+          "name": "Enroll Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"semesterId\": \"{{semesterId}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/classes/{{classRoomId}}/enrollments"
+          }
+        },
+        {
+          "name": "Assign Teacher",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('assignmentId', pm.response.json().data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"subjectId\": \"{{subjectId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"semesterId\": \"{{semesterId}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/classes/{{classRoomId}}/assignments"
+          }
+        },
+        {
+          "name": "Create Grade Configuration",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const data = pm.response.json().data;", "pm.collectionVariables.set('component1Id', data.components[0].id);", "pm.collectionVariables.set('component2Id', data.components[1].id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"subjectId\": \"{{subjectId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"components\": [\n    { \"name\": \"Giua ky\", \"weight\": 0.4, \"maxScore\": 10, \"displayOrder\": 1, \"isRequired\": true, \"includeInGpa\": true },\n    { \"name\": \"Cuoi ky\", \"weight\": 0.6, \"maxScore\": 10, \"displayOrder\": 2, \"isRequired\": true, \"includeInGpa\": true }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/v1/grade-configurations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Grade Happy Flow",
+      "item": [
+        {
+          "name": "Teacher Bulk Update Grades",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"atomic\": true,\n  \"items\": [\n    { \"studentId\": \"{{studentId}}\", \"componentId\": \"{{component1Id}}\", \"score\": 8.25, \"version\": null, \"reason\": \"Postman\" },\n    { \"studentId\": \"{{studentId}}\", \"componentId\": \"{{component2Id}}\", \"score\": 8.75, \"version\": null, \"reason\": \"Postman\" }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/v1/assignments/{{assignmentId}}/grades/bulk"
+          }
+        },
+        {
+          "name": "Teacher Submit Gradebook",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/api/v1/assignments/{{assignmentId}}/grades/submit"
+          }
+        },
+        {
+          "name": "Academic Publish Gradebook",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }],
+            "url": "{{baseUrl}}/api/v1/assignments/{{assignmentId}}/grades/publish"
+          }
+        },
+        {
+          "name": "Parent Read Published Grades",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{parentToken}}" }],
+            "url": "{{baseUrl}}/api/v1/assignments/{{assignmentId}}/students/{{studentId}}/grades/published"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Integration Sync",
+      "item": [
+        {
+          "name": "Retry Grade Sync",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/sync/grades/{{assignmentId}}/retry"
+          }
+        },
+        {
+          "name": "Get Sync Record",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{academicToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/sync/records/{{syncRecordId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
