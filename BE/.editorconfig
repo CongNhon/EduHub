@@ -16,7 +16,7 @@ dotnet_style_qualification_for_event = false:suggestion
 [**/Error.cs]
 dotnet_diagnostic.CA1716.severity = none
 
-[**/tests/**/*.cs]
+[tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
 
 [**/Migrations/*.cs]
