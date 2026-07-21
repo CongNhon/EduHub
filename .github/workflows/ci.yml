@@ -1,0 +1,33 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "BE/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "BE/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore BE/EduHub.sln
+      - run: dotnet build BE/EduHub.sln --configuration Release --no-restore
+      - run: dotnet test BE/EduHub.sln --configuration Release --no-build
+      - run: docker build --tag eduhub-api:ci BE

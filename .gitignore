@@ -1,73 +1,43 @@
-# Secrets and machine-local configuration
-.env
-.env.*
-!.env.example
-!**/.env.example
-appsettings.*.local.json
-secrets.json
-*.pfx
-*.p12
-*.pem
-*.key
-
-# Local data and generated files
+# Personal and IDE state
+AGENTS.md
+.idea/
+.vs/
+.vscode/
 .local/
-data/
-logs/
-*.log
-reports/
-profile-evidence/
+frontend/
 
-# .NET
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/appsettings.*.local.json
+**/*.pfx
+**/*.p12
+**/*.pem
+**/*.key
+
+# .NET output
 **/bin/
 **/obj/
-.vs/
-TestResults/
-coverage/
-coverage.*
-*.coverage
-*.coveragexml
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-*.nupkg
-*.snupkg
-artifacts/
+**/TestResults/
+**/coverage/
+**/artifacts/
+**/*.user
+**/*.suo
 
-# Node / Next.js / pnpm
+# Node and browser output
 **/node_modules/
 **/.next/
-**/out/
 **/dist/
+**/out/
 **/.turbo/
 **/*.tsbuildinfo
-.pnpm-store/
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+**/.pnpm-store/
+**/playwright-report/
+**/test-results/
+**/*.log
 
-# Test and browser artifacts
-playwright-report/
-test-results/
-blob-report/
-
-# IDE and OS
-.idea/
-*.DotSettings.user
-.vscode/
+# OS files
 .DS_Store
 Thumbs.db
 Desktop.ini
-
-# Personal AI-agent instructions
-AGENTS.md
-.codex/
-
-# Frontend is maintained as an independent repository
-.env
-**/bin/
-**/obj/
-**/node_modules/
-**/.next/

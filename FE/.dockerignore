@@ -1,0 +1,16 @@
+.git
+.idea
+.vscode
+.local
+**/node_modules
+**/.next
+**/dist
+**/out
+**/.turbo
+**/*.tsbuildinfo
+coverage
+playwright-report
+test-results
+.env
+.env.*
+*.log

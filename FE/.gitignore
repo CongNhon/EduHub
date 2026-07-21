@@ -1,0 +1,26 @@
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Generated files
+**/node_modules/
+**/.next/
+**/dist/
+**/out/
+**/.turbo/
+**/*.tsbuildinfo
+.local/
+.pnpm-store/
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
