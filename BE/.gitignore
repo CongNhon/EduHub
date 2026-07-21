@@ -12,11 +12,11 @@ secrets.json
 
 # Local data and generated files
 .local/
-data/
-logs/
+/data/
+/logs/
 *.log
-reports/
-profile-evidence/
+/reports/
+/profile-evidence/
 
 # .NET
 **/bin/
