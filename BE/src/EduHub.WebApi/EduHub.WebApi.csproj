@@ -2,6 +2,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Carter" />
+    <PackageReference Include="DevExpress.AspNetCore.Dashboard" />
+    <PackageReference Include="DevExpress.AspNetCore.Reporting" />
+    <PackageReference Include="DevExpress.Drawing.Skia" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="Hangfire.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />

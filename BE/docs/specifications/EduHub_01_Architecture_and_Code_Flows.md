@@ -972,6 +972,8 @@ start-backend.ps1
 
 - `.env.example` chỉ chứa local-only credentials; Neon, Atlas, SMTP và provider secrets phải cấp ngoài Git.
 - Seed chạy riêng bằng `start-backend.ps1 -InitializeOnly -SeedData` hoặc Compose profile `tools`; API startup không tự seed.
+- Pipeline seed: `Identity -> Academic happy-flow -> School catalog -> Scenario data`; scenario tạo enrollment hai học kỳ, assignment, grade states, remark states, request states và TKB Published tuần 1.
+- Scenario seed dùng natural key hoặc marker `[SEED]` để chạy lại không nhân đôi dữ liệu và không xóa dữ liệu người dùng đã tạo.
 - Commit EF migrations, model snapshot, `pnpm-lock.yaml`, generated API schema và local tool manifest.
 - Không commit `.env`, IDE/cache/build output, `.local`, report/evidence, Docker volumes hoặc database dump.
 - Local API và Docker API dùng cùng cổng `8080` nhưng không chạy đồng thời.
@@ -990,3 +992,99 @@ Browser -> http://localhost:3000 / http://localhost:3001
 - Git repository gốc quản lý hai workspace `BE/` và `FE/`; mỗi workspace có CI và Docker Compose riêng.
 - Compose chỉ publish port trên `127.0.0.1`, API container chạy non-root, drop capabilities và dùng read-only root filesystem.
 - Migration hoàn tất trước API; seed idempotent và chỉ chạy theo lệnh chủ động.
+
+## 21. DevExpress analytics/reporting foundation
+
+```text
+SystemAdmin Portal -> DevExpress React Viewer -> authenticated ASP.NET Core controller
+-> Application analytics/report service -> repository interface -> PostgreSQL/Redis/Mongo/Hangfire
+```
+
+- `EduHubDashboardController` kế thừa `RestrictedDashboardController`; browser chỉ xem dashboard đã đăng ký, không tạo hoặc sửa dashboard trên server.
+- `EduHubWebDocumentViewerController` chỉ cung cấp Document Viewer cho `SystemAdmin`; chưa bật End-User Report Designer.
+- DevExpress không truy cập DbContext trực tiếp. Dataset ở các bước sau vẫn phải theo `Feature -> Service -> Repository`.
+- Private `DevExpress_License.txt` chỉ dùng lúc local/Docker/CI build. Next.js sinh `devextreme-license.ts` public lúc build và file này không commit.
+
+### 21.1 Admin analytics datasets
+
+```text
+GET /api/v1/admin/analytics/{overview|academic|data-quality}?semesterId=...
+-> AdminAnalyticsModule
+-> MediatR Query Handler
+-> IAdminAnalyticsService / AdminAnalyticsService
+-> IAdminAnalyticsRepository / AdminAnalyticsRepository
+-> ApplicationDbContext -> PostgreSQL
+```
+
+- Chỉ `SystemAdmin`; API policy và Application Service đều kiểm tra role.
+- Bỏ `semesterId`: ưu tiên học kỳ `Active`, nếu không có thì dùng học kỳ có ngày bắt đầu gần nhất.
+- `academic`: chỉ `Published`/`Locked` được đưa vào điểm trung bình và tỷ lệ đạt; mọi điểm được chuẩn hóa `Score * 10 / MaxScore`.
+- Mốc đạt: điểm chuẩn hóa `>= 5`; các bucket: `<5`, `5..<6.5`, `6.5..<8`, `8..<9`, `9..10`.
+- `data-quality`: phát hiện học sinh thiếu lớp/phụ huynh/login, lớp thiếu GVCN/TKB, giáo viên thiếu năng lực môn, assignment chưa có điểm và lớp vượt sĩ số.
+- Đây là read-model, không đổi schema nên không tạo EF Core migration.
+
+### 21.2 Portal dashboards
+
+```text
+/admin -> DevExtreme SelectBox + Chart + PieChart + DataGrid
+/admin/system-health -> dependency health + operational monitoring
+```
+
+- Semester filter gọi lại Overview/Academic/Data Quality theo cùng `semesterId`.
+- Phân bố điểm dùng `Bar Histogram`; tiến độ công bố dùng `Doughnut`; quy mô học sinh theo khối dùng `Bar`; so sánh môn dùng `Spline Area + Spline`; dữ liệu cần tra cứu dùng `DataGrid`.
+- Dashboard có operational work queue gồm hồ sơ chờ duyệt, báo cáo chưa hoàn tất, Outbox pending và external sync failed; Data Quality chỉ hiện issue có `Count > 0`.
+- Operational monitoring gồm Redis hit/miss/failure, Hangfire statistics, Outbox backlog, Ministry sync, email digest và report jobs.
+- Dashboard tự refresh mỗi 60 giây; System Health mỗi 30 giây.
+
+### 21.3 DevExpress Reporting
+
+```text
+/admin/reports -> React Web Document Viewer
+-> Portal BFF /api/backend/DXXRDV
+-> [Authorize(SystemAdmin)] EduHubWebDocumentViewerController
+-> IReportProviderAsync
+-> IAdminAnalyticsReportService
+-> IAdminAnalyticsSnapshotService
+-> PostgreSQL datasets
+-> DevExpressAdminReportCatalog
+-> Executive Summary | Academic by Grade | Data Quality XtraReport
+```
+
+- `GET /api/v1/admin/analytics/report/export?semesterId=...&reportType=...&format=pdf|xlsx|csv` hỗ trợ tải file không cần mở viewer; bỏ `reportType` thì dùng `executive-summary`.
+- Catalog có ba mẫu: `Executive Summary`, `Academic by Grade` và `Data Quality`.
+- `Academic by Grade` dùng `GroupHeaderBand` theo khối, mỗi group chứa các lớp và điểm trung bình, tỷ lệ đạt, số điểm công bố.
+- `Data Quality` dùng `GroupHeaderBand` theo severity, mỗi group chứa loại lỗi và số bản ghi bị ảnh hưởng.
+- PDF khóa `A4 Portrait`, margins `40/40/48/42` và content width `740`, tránh DevExpress tạo trang phụ do tràn ngang.
+- WebApi composition root đăng ký `IReportProviderAsync -> DevExpressAdminReportProvider` sau `ConfigureReportingServices`; implementation vẫn thuộc Infrastructure.
+- Report Viewer nhận Bearer token từ access token trong memory; BFF chỉ forward token, refresh token vẫn ở HttpOnly cookie.
+
+### 21.3.1 Account security flow
+
+```text
+PUT /api/v1/users/{id} + ChangeReason
+-> UpdateUserAccountCommandValidator
+-> PeopleService
+-> self/last-admin/dependency guards
+-> User.UpdateProfile + SecurityStamp rotation
+-> revoke active refresh tokens when role/status changes
+-> PostgreSQL commit
+-> structured audit log without secrets
+```
+
+- `ChangeReason` bắt buộc từ 10 đến 500 ký tự cho mọi lần cập nhật tài khoản.
+- Role hoặc trạng thái thay đổi sẽ thu hồi refresh token; access token cũ bị vô hiệu bởi `SecurityStamp` mới.
+- Audit log ghi actor, target, role/status trước-sau và lý do; không ghi password, token hoặc connection string.
+
+### 21.4 Scheduled analytics digest
+
+```text
+Hangfire weekly Monday 06:30 Asia/Ho_Chi_Minh
+-> WeeklyAdminAnalyticsDigestJob
+-> IAdminAnalyticsSnapshotService
+-> EmailDigestDelivery idempotency
+-> SMTP/FakeEmailSender -> active SystemAdmin
+```
+
+- Email HTML chứa KPI, top Data Quality findings và link `/admin/reports`.
+- `Frontend:PortalBaseUrl` cấu hình link theo môi trường.
+- Không có schema mới; tái sử dụng `email_digest_deliveries` để chống gửi trùng.

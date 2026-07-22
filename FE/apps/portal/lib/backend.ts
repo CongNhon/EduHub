@@ -12,7 +12,12 @@ function usesSecureCookies(request: Request) {
 export function isSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return true;
-  return origin === new URL(request.url).origin;
+  const requestUrl = new URL(request.url);
+  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim();
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",", 1)[0]?.trim();
+  const publicHost = forwardedHost || request.headers.get("host") || requestUrl.host;
+  const publicProtocol = forwardedProtocol || requestUrl.protocol.replace(":", "");
+  return origin === `${publicProtocol}://${publicHost}`;
 }
 
 /** Gọi backend ASP.NET từ BFF bằng base URL cố định phía server. */

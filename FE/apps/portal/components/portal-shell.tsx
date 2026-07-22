@@ -2,7 +2,7 @@
 
 import { homeForRole, roleLabel, type UserRole } from "@eduhub/auth";
 import { ThemeToggle } from "@eduhub/ui";
-import { Bell, BookOpenCheck, Boxes, CalendarClock, CalendarRange, ChevronLeft, ChevronRight, CircleUserRound, FileSpreadsheet, FileText, HeartHandshake, LayoutDashboard, LogOut, Menu, School, Settings2, UserRoundCheck, UserRoundCog, Users, X } from "lucide-react";
+import { Bell, BookOpenCheck, Boxes, CalendarClock, CalendarRange, ChevronLeft, ChevronRight, CircleUserRound, FileChartColumn, FileSpreadsheet, FileText, HeartHandshake, LayoutDashboard, LogOut, Menu, School, Settings2, UserRoundCheck, UserRoundCog, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -17,7 +17,7 @@ const navigation: Record<UserRole, NavItem[]> = {
   Student: [{ href: "/student", label: "Tổng quan", icon: LayoutDashboard }, { href: "/student/timetable", label: "Thời khóa biểu", icon: CalendarClock }, { href: "/student/profile", label: "Hồ sơ của tôi", icon: CircleUserRound }, ...common],
   Teacher: [{ href: "/teacher", label: "Tổng quan", icon: LayoutDashboard }, { href: "/teacher/classes", label: "Lớp & Sổ điểm", icon: BookOpenCheck }, { href: "/teacher/timetable", label: "Thời khóa biểu", icon: CalendarClock }, ...common],
   AcademicAdmin: [{ href: "/academic", label: "Tổng quan", icon: LayoutDashboard }, { href: "/academic/students", label: "Học sinh & Phụ huynh", icon: Users }, { href: "/academic/people", label: "Giáo viên & Phụ huynh", icon: UserRoundCog }, { href: "/academic/academics", label: "Năm học & Môn học", icon: CalendarRange }, { href: "/academic/classes", label: "Lớp & Ghi danh", icon: Boxes }, { href: "/academic/scheduling", label: "Chương trình & TKB", icon: CalendarClock }, { href: "/academic/imports", label: "Import Excel", icon: FileSpreadsheet }, { href: "/academic/profile-requests", label: "Duyệt hồ sơ", icon: UserRoundCheck }, { href: "/academic/grade-configurations", label: "Cấu hình điểm", icon: Settings2 }, { href: "/academic/gradebooks", label: "Duyệt & Công bố điểm", icon: BookOpenCheck }, { href: "/reports", label: "Duyệt báo cáo", icon: FileText }, ...common],
-  SystemAdmin: [{ href: "/admin", label: "Tổng quan hệ thống", icon: LayoutDashboard }, { href: "/admin/people", label: "Tài khoản & Phân quyền", icon: UserRoundCog }, { href: "/admin/school", label: "Thông tin trường", icon: School }, { href: "/admin/system-health", label: "Sức khỏe hệ thống", icon: HeartHandshake }, ...common],
+  SystemAdmin: [{ href: "/admin", label: "Tổng quan hệ thống", icon: LayoutDashboard }, { href: "/admin/reports", label: "Báo cáo quản trị", icon: FileChartColumn }, { href: "/admin/people", label: "Tài khoản & Phân quyền", icon: UserRoundCog }, { href: "/admin/school", label: "Thông tin trường", icon: School }, { href: "/admin/system-health", label: "Sức khỏe hệ thống", icon: HeartHandshake }, ...common],
 };
 
 /** PortalShell dựng navigation theo role, topbar và responsive drawer cho portal. */

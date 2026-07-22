@@ -15,7 +15,7 @@ public static class PeopleMappings
         new(request.Email, request.Password, request.FullName, request.ReferenceCode, request.PhoneNumber, request.Role);
 
     public static UpdateUserAccountCommand ToCommand(this UpdateUserAccountRequest request, Guid id) =>
-        new(id, request.FullName, request.ReferenceCode, request.PhoneNumber, request.Role, request.IsActive);
+        new(id, request.FullName, request.ReferenceCode, request.PhoneNumber, request.Role, request.IsActive, request.ChangeReason);
 
     public static UserAccountDto ToDto(this UserAccountResponse response) =>
         new(response.Id, response.Email, response.FullName, response.ReferenceCode, response.PhoneNumber, response.Role, response.IsActive);

@@ -123,6 +123,20 @@ TeachingAssignment + GradeComponents
 
 Extended school seed tạo chương trình 35 tuần, môn THPT, 9 lớp khối 10-12, 24 giáo viên, năng lực giảng dạy, GVCN và 30 học sinh/phụ huynh mỗi lớp.
 
+Scenario seed bổ sung dữ liệu để test UI theo role:
+
+```text
+Enrollment: 270 học sinh cho cả HK1 và HK2
+Teaching assignments: các môn xuất hiện trong TKB cho mọi lớp
+Grades: phổ điểm 0-10, đủ Draft / Submitted / Published / Locked
+Remarks: nhận xét Draft và Published
+Requests: profile Pending / Approved / Rejected
+Reports: Pending / Approved / Rejected
+Timetable: phiên bản Published, tuần 1 đủ 29 tiết cho 9 lớp
+```
+
+Seeder idempotent theo natural key hoặc marker `[SEED]`; chạy lại không nhân đôi scenario.
+
 ## Architecture
 
 ```text
@@ -252,3 +266,35 @@ Known gap:
 Real Ministry sandbox URL/auth still needs provider confirmation.
 Rotate external secrets before any real deployment.
 ```
+
+## DevExpress build license
+
+- Local Windows: installer đặt private key tại `%AppData%\DevExpress\DevExpress_License.txt`.
+- Docker Compose: BuildKit mount file này như build secret; key không vào final image.
+- GitHub Actions: tạo repository secret `DevExpressLicenseKey` trước khi chạy CI.
+- Không chia sẻ hoặc commit private license key; mỗi developer dùng license được DevExpress cấp cho mình.
+
+SystemAdmin analytics datasets:
+
+```text
+GET /api/v1/admin/analytics/overview?semesterId={optional-guid}
+GET /api/v1/admin/analytics/academic?semesterId={optional-guid}
+GET /api/v1/admin/analytics/data-quality?semesterId={optional-guid}
+```
+
+- Dùng JWT của `SystemAdmin`.
+- Không truyền `semesterId`: dùng học kỳ active hoặc học kỳ gần nhất.
+- Đây là API read-only; không cần migration mới.
+
+Admin DevExpress routes:
+
+```text
+GET /api/v1/admin/monitoring
+GET /api/v1/admin/analytics/report/export?reportType=executive-summary|academic-by-grade|data-quality&format=pdf|xlsx|csv
+POST /DXXRDV                         # Web Document Viewer protocol
+```
+
+- Catalog gồm `Executive Summary`, `Academic by Grade` và `Data Quality`; hai mẫu sau dùng DevExpress `GroupHeaderBand` thật.
+- Weekly SystemAdmin analytics digest chạy thứ Hai `06:30` theo timezone Việt Nam.
+- `Frontend__PortalBaseUrl` đặt link Portal trong email; mặc định `http://localhost:3001`.
+- Linux image cài `fontconfig` và `fonts-dejavu-core` để XtraReport render ổn định.

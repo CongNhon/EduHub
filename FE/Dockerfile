@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM node:24-alpine AS base
 
 ENV PNPM_HOME=/pnpm
@@ -30,7 +31,12 @@ ENV NEXT_PUBLIC_SIGNALR_URL=$NEXT_PUBLIC_SIGNALR_URL
 
 COPY . .
 RUN test "$APP" = "site" -o "$APP" = "portal"
-RUN pnpm --filter "@eduhub/$APP" build
+RUN --mount=type=secret,id=devexpress_license \
+    if [ "$APP" = "portal" ]; then \
+      test -s /run/secrets/devexpress_license; \
+      export DevExpress_License="$(cat /run/secrets/devexpress_license)"; \
+    fi; \
+    pnpm --filter "@eduhub/$APP" build
 RUN mkdir -p /standalone/apps/$APP/.next \
     && cp -R apps/$APP/.next/standalone/. /standalone/ \
     && cp -R apps/$APP/.next/static /standalone/apps/$APP/.next/static

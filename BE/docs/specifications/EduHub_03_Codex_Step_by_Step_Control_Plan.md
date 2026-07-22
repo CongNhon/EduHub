@@ -853,7 +853,7 @@ ReportsModule -> ReviewReportRequestCommandHandler -> IReportService
 | `P21-S04` | BUILD VERIFIED | Scheduling Carter APIs: plan, capability, GVCN, generate/version/entry/publish/move/lock. |
 | `P21-S05` | BUILD VERIFIED | Student profile correction + R2 presigned upload/local fallback + AcademicAdmin review. |
 | `P21-S06` | BUILD VERIFIED | ClosedXML template/import Student + Parent + link + Enrollment, row-level result. |
-| `P21-S07` | SEEDED | Neon development seed: 23 môn, 9 lớp, 271 học sinh, 566 tài khoản, 3 curriculum plans. |
+| `P21-S07` | SEEDED | Neon development seed: môn THPT, 9 lớp, 270 học sinh, tài khoản theo role và 3 curriculum plans. |
 | `P21-S08` | BUILD VERIFIED | Portal production build có timetable theo role, student profile, profile approval, Excel import và scheduling workspace. |
 | `P21-S09` | DOCUMENTED | Architecture, business rules, test catalogue và route flow đồng bộ. |
 
@@ -903,3 +903,39 @@ ReportsModule -> ReviewReportRequestCommandHandler -> IReportService
 | `P23-S03` | CODE COMPLETE | Backend/Frontend được đóng gói thành hai workspace `BE/` và `FE/` trong cùng monorepo, với ignore, CI, Dependabot, security policy và PR template dùng chung. |
 | `P23-S04` | CODE COMPLETE | Frontend Site/Portal có standalone Docker images và dùng chung network `eduhub-dev` với Backend. |
 | `P23-S05` | VERIFIED | Backend build `0 warning/error`, `22/22` tests, Frontend typecheck/lint/build, vulnerability audits, Docker migration + seed idempotency + health/BFF smoke PASS ngày 2026-07-21. |
+
+## 20. Progress extension — DevExpress system analytics
+
+| Step | Status | Deliverable |
+|---|---|---|
+| `P24-S01` | CODED | DevExpress 26.1 Dashboard/Reporting/Skia + React packages, SystemAdmin-only restricted controllers và secret-safe local/Docker/CI license pipeline. |
+| `P24-S02` | CODED | SystemAdmin analytics contracts, repository/service, MediatR features và 3 API datasets Overview/Academic/Data Quality. |
+| `P24-S03` | CODED | `/admin` dùng DevExtreme KPI, semester filter, charts và grids cho Overview/Academic/Data Quality. |
+| `P24-S04` | CODED | Monitoring API và System Health dashboard cho Redis, Hangfire, Outbox, integration, email, reports. |
+| `P24-S05` | CODED | Catalog 3 Programmatic XtraReport, gồm 2 report dùng GroupHeaderBand, React Web Document Viewer và export PDF/XLSX/CSV theo reportType. |
+| `P24-S06` | CODED | Bearer-aware BFF, Docker origin fix, SystemAdmin authorization và weekly Hangfire HTML digest. |
+| `P24-S07` | CODED / NOT RUN | Integration tests, Docker fonts/config và documentation gate đã thêm; chưa chạy Build/Test/Docker. |
+| `P25-S01` | VERIFIED / SEEDED | DatabaseManager đã build sạch và seed idempotent vào Neon `neondb`; API HK2 xác minh 270 học sinh, 9 lớp, 24 môn và 1.296 GradeEntry đủ bốn trạng thái. |
+| `P25-S02` | CODED / UI CHECKED | Portal đồng bộ DevExtreme/Analytics Light-Dark theme và tăng độ đọc chữ phụ; login Light/Dark đã kiểm tra trực quan. |
+
+### 20.1 Gate P24-S01
+
+- Source/config hoàn tất; chưa tuyên bố build/test pass trước lệnh xác nhận của người dùng.
+- GitHub Actions cần repository secret `DevExpressLicenseKey`; mỗi developer cần license DevExpress hợp lệ riêng.
+- Trial hiện tại sinh cảnh báo/watermark `DX1000`; lỗi thiếu/sai license vẫn không được hạ cấp.
+
+### 20.2 Gate P24-S02
+
+- Luồng code: `API DTO/Mapping -> MediatR -> Service -> Repository -> PostgreSQL`.
+- Academic dataset dùng điểm Published/Locked chuẩn hóa thang 10; Data Quality chỉ đọc, không tự sửa.
+- Không có thay đổi database schema và không tạo migration.
+- Source hoàn tất; chờ lệnh riêng để Build/Test trước khi chuyển `VERIFIED`.
+
+### 20.3 Gate P24-S03..S07
+
+- Portal routes: `/admin`, `/admin/reports`, `/admin/system-health`.
+- DevExpress 26.1 versions đồng nhất giữa NuGet/npm; report viewer dùng endpoint `/DXXRDV` qua BFF và chọn giữa Executive Summary, Academic by Grade, Data Quality.
+- Weekly digest: thứ Hai `06:30`, timezone Việt Nam, chỉ SystemAdmin active.
+- Docker runtime thêm `fonts-dejavu-core`; license vẫn chỉ mount ở build stage.
+- Integration tests đã code cho `401/403`, ba datasets, monitoring và PDF signature.
+- Chưa chạy restore/build/test/frontend build/Docker rehearsal theo checkpoint người dùng.

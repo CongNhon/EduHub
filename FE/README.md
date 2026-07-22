@@ -2,6 +2,8 @@
 
 Frontend workspace cho EduHub Site và Portal. Backend nằm tại thư mục `../BE` trong cùng EduHub monorepo.
 
+Portal sinh local stylesheet cho DevExtreme và DevExpress Analytics trước `dev`, `build`, `typecheck`, `lint`. Component `DevExpressTheme` đổi đồng thời stylesheet Light/Dark theo `next-themes`, tránh chữ sáng trên nền sáng.
+
 ## Docker — fresh clone
 
 Khởi chạy Backend trước để tạo network `eduhub-dev`, sau đó:
@@ -62,3 +64,20 @@ AcademicAdmin: /academic/scheduling, /academic/imports, /academic/profile-reques
 - Timetable: tuần thực tế có khoảng ngày và tuần hiện tại; chỉ đọc bản Published theo resource scope; AcademicAdmin sinh, hoán đổi slot, đổi giáo viên, khóa và công bố bản Draft.
 - Student profile: upload ảnh bằng chứng rồi gửi request; hồ sơ chỉ đổi sau AcademicAdmin approval.
 - Excel import: tải template, upload XLSX và nhận kết quả từng dòng/mật khẩu tạm một lần.
+
+## DevExpress client license
+
+- `pnpm dev/build/typecheck/lint` tự chạy `devextreme-license` từ private key đã cài trên máy.
+- Public client key được sinh tại `apps/portal/app/devextreme-license.ts` và bị Git ignore.
+- Docker đọc `%AppData%\DevExpress\DevExpress_License.txt` bằng BuildKit secret; CI dùng GitHub secret `DevExpressLicenseKey`.
+
+## SystemAdmin analytics
+
+```text
+/admin                DevExtreme KPI, charts, grids và semester filter
+/admin/reports        DevExpress Web Document Viewer + PDF/XLSX/CSV
+/admin/system-health  Dependency health + Redis/Hangfire/queue monitoring
+```
+
+- Viewer gọi `/api/backend/DXXRDV`; access token chỉ gắn vào request trong memory.
+- Session mutation kiểm tra public `Host/X-Forwarded-*`, nên chạy đúng cả local và Docker reverse proxy.

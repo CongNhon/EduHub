@@ -15,7 +15,7 @@ public sealed record CreateUserAccountRequest(string Email, string Password, str
 /// <summary>
 /// Ghi chú: UpdateUserAccountRequest chứa hồ sơ, role và trạng thái tài khoản cần cập nhật.
 /// </summary>
-public sealed record UpdateUserAccountRequest(string FullName, string? ReferenceCode, string? PhoneNumber, UserRole Role, bool IsActive);
+public sealed record UpdateUserAccountRequest(string FullName, string? ReferenceCode, string? PhoneNumber, UserRole Role, bool IsActive, string ChangeReason);
 
 /// <summary>
 /// Ghi chú: UserAccountDto trả thông tin tài khoản dùng trong màn hình quản lý con người.

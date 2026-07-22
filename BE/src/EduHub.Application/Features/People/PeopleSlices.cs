@@ -37,6 +37,7 @@ public sealed class UpdateUserAccountCommandValidator : AbstractValidator<Update
         RuleFor(command => command.ReferenceCode).MaximumLength(64);
         RuleFor(command => command.PhoneNumber).MaximumLength(32);
         RuleFor(command => command.Role).IsInEnum();
+        RuleFor(command => command.ChangeReason).NotEmpty().MinimumLength(10).MaximumLength(500);
     }
 }
 

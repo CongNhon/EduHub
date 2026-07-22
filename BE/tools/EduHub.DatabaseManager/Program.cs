@@ -64,6 +64,7 @@ try
         await provider.SeedDevelopmentIdentityAsync();
         await provider.SeedDevelopmentAcademicDataAsync();
         await provider.SeedDevelopmentSchoolAsync();
+        await provider.SeedDevelopmentScenariosAsync();
     }
 
     Console.WriteLine(args[0] == seedCommand

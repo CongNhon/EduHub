@@ -15,6 +15,10 @@ frontend/
 **/*.p12
 **/*.pem
 **/*.key
+**/DevExpress_License.txt
+**/devextreme-license.ts
+**/public/themes/devextreme-*.css
+**/public/themes/analytics-*.css
 
 # .NET output
 **/bin/

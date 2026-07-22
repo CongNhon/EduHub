@@ -24,5 +24,5 @@ public sealed record CreateUserAccountCommand(string Email, string Password, str
 /// <summary>
 /// Ghi chú: UpdateUserAccountCommand cập nhật hồ sơ, role và trạng thái tài khoản hiện có.
 /// </summary>
-public sealed record UpdateUserAccountCommand(Guid Id, string FullName, string? ReferenceCode, string? PhoneNumber, UserRole Role, bool IsActive)
+public sealed record UpdateUserAccountCommand(Guid Id, string FullName, string? ReferenceCode, string? PhoneNumber, UserRole Role, bool IsActive, string ChangeReason)
     : ICommand<Result<UserAccountResponse>>;

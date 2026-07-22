@@ -47,6 +47,8 @@ services:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
         NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-http://localhost:3001}
         NEXT_PUBLIC_SIGNALR_URL: /hubs/notifications
+      secrets:
+        - devexpress_license
     environment:
       EDUHUB_API_URL: http://eduhub-api:8080
       PORT: 3000
@@ -63,3 +65,7 @@ networks:
   eduhub:
     name: eduhub-dev
     external: true
+
+secrets:
+  devexpress_license:
+    file: ${APPDATA:?APPDATA is required}/DevExpress/DevExpress_License.txt

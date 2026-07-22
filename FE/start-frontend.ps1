@@ -5,16 +5,18 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$bundledNode = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin"
+if (-not (Get-Command node.exe -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath (Join-Path $bundledNode "node.exe"))) {
+    $env:PATH = "$bundledNode;$env:PATH"
+}
 $pnpmCommand = Get-Command pnpm.cmd -ErrorAction SilentlyContinue
 
 if (-not $pnpmCommand) {
-    $bundledNode = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin"
     $bundledPnpm = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback\pnpm.cmd"
     if (-not (Test-Path -LiteralPath $bundledPnpm)) {
         Write-Host "Khong tim thay pnpm. Cai Node.js LTS va pnpm truoc khi chay."
         exit 1
     }
-    $env:PATH = "$bundledNode;$env:PATH"
     $pnpm = $bundledPnpm
 }
 else {

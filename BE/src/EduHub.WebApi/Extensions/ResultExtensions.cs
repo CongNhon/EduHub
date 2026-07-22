@@ -44,6 +44,22 @@ public static class ResultExtensions
             : ToProblem(result.Error!);
 
     /// <summary>
+    /// Ghi chú: ToFileHttpResult chuyển Application file response thành HTTP download hoặc ProblemDetails lỗi.
+    /// </summary>
+    public static IResult ToFileHttpResult<TApplication>(
+        this Result<TApplication> result,
+        Func<TApplication, (byte[] Content, string ContentType, string FileName)> map)
+    {
+        if (result.IsFailure)
+        {
+            return ToProblem(result.Error!);
+        }
+
+        var file = map(result.Value);
+        return Results.File(file.Content, file.ContentType, file.FileName, enableRangeProcessing: false);
+    }
+
+    /// <summary>
     /// Ghi chú: ToProblem thực hiện phần xử lý của helper đổi Result thành HTTP response.
     /// </summary>
     private static IResult ToProblem(Error error)

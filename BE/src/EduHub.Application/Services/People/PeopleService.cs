@@ -6,18 +6,20 @@ using EduHub.Application.Interfaces.Repositories.People;
 using EduHub.Application.Interfaces.Services.People;
 using EduHub.Domain.Entities.Identity;
 using EduHub.Domain.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace EduHub.Application.Services.People;
 
 /// <summary>
 /// Ghi chú: PeopleService xử lý tạo, cập nhật và tìm kiếm tài khoản người dùng của trường.
 /// </summary>
-public sealed class PeopleService(
+public sealed partial class PeopleService(
     IPeopleRepository repository,
     IPasswordHashService passwordHashService,
     ICurrentUser currentUser,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    ILogger<PeopleService> logger)
     : IPeopleService
 {
     /// <summary>
@@ -84,7 +86,9 @@ public sealed class PeopleService(
                 ErrorType.Conflict));
         }
 
-        var securityChanged = user.Role != request.Role || user.IsActive != request.IsActive;
+        var previousRole = user.Role;
+        var previousActiveState = user.IsActive;
+        var securityChanged = previousRole != request.Role || previousActiveState != request.IsActive;
         var now = timeProvider.GetUtcNow().UtcDateTime;
         user.UpdateProfile(request.FullName, request.ReferenceCode, request.PhoneNumber, request.Role, request.IsActive, now);
         if (securityChanged)
@@ -93,8 +97,34 @@ public sealed class PeopleService(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        LogUserAccountChanged(
+            logger,
+            user.Id,
+            currentUser.UserId,
+            previousRole,
+            user.Role,
+            previousActiveState,
+            user.IsActive,
+            request.ChangeReason.Trim());
         return Result.Success(ToResponse(user));
     }
+
+    /// <summary>
+    /// Ghi chú: LogUserAccountChanged ghi audit thay đổi tài khoản gồm người thao tác, đối tượng, role, trạng thái và lý do nhưng không ghi secret.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 2101,
+        Level = LogLevel.Warning,
+        Message = "User account {TargetUserId} changed by {ActorUserId}. Role {PreviousRole} -> {CurrentRole}; active {PreviousActiveState} -> {CurrentActiveState}; reason: {ChangeReason}")]
+    private static partial void LogUserAccountChanged(
+        ILogger logger,
+        Guid targetUserId,
+        Guid? actorUserId,
+        UserRole previousRole,
+        UserRole currentRole,
+        bool previousActiveState,
+        bool currentActiveState,
+        string changeReason);
 
     private static UserAccountResponse ToResponse(User user) =>
         new(user.Id, user.Email, user.FullName, user.ReferenceCode, user.PhoneNumber, user.Role.ToString(), user.IsActive);

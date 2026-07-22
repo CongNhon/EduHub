@@ -22,6 +22,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DevExpress_License: ${{ secrets.DevExpressLicenseKey }}
     defaults:
       run:
         working-directory: FE
@@ -38,4 +40,4 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
       - run: docker build --build-arg APP=site --tag eduhub-site:ci .
-      - run: docker build --build-arg APP=portal --build-arg EDUHUB_API_URL=http://eduhub-api:8080 --tag eduhub-portal:ci .
+      - run: docker build --secret id=devexpress_license,env=DevExpress_License --build-arg APP=portal --build-arg EDUHUB_API_URL=http://eduhub-api:8080 --tag eduhub-portal:ci .

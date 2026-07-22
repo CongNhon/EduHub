@@ -917,5 +917,64 @@ Chỉ coi feature hoàn tất khi:
 - API startup không được tự tạo hoặc thay đổi dữ liệu nghiệp vụ.
 - Migration chỉ thay đổi schema/version; không đồng nghĩa với seed dữ liệu demo.
 - Seeder development chạy chủ động, idempotent và không xóa dữ liệu hiện hữu.
+- Scenario seed phải có dữ liệu đại diện cho mọi trạng thái chính: Grade Draft/Submitted/Published/Locked, Profile Pending/Approved/Rejected và Report Pending/Approved/Rejected.
+- Điểm scenario seed phải biến thiên theo học sinh, môn, thành phần và lớp; không được tạo cùng average/pass-rate giả tạo cho mọi lớp.
+- Học sinh demo phải có enrollment ở cả HK1/HK2 để semester mặc định trên dashboard không trả số lượng bằng 0.
+- TKB demo Published phải có đủ 29 tiết tuần 1 cho mỗi lớp; thứ Tư 4 tiết và thứ Bảy tiết 5 là Sinh hoạt lớp.
 - Reset dữ liệu local phải là thao tác rõ ràng bằng `docker compose down -v`.
 - Tài khoản, email và mật khẩu seed chỉ dùng trong môi trường local Development.
+
+## DevExpress analytics/reporting rules
+
+| ID | Rule |
+|---|---|
+| `DX-001` | Chỉ `SystemAdmin` được gọi Dashboard và Report Viewer DevExpress. |
+| `DX-002` | Dashboard chạy Restricted/Viewer mode; client không được tạo, sửa hoặc thay data source. |
+| `DX-003` | Dataset phải qua Application Service/Repository; DevExpress controller không đọc DbContext trực tiếp. |
+| `DX-004` | Private license key không được commit, log hoặc đóng gói vào final Docker image. |
+| `DX-005` | Analytics API chỉ cho `SystemAdmin`; endpoint policy và service cùng kiểm tra role. |
+| `DX-006` | Không truyền học kỳ thì chọn học kỳ `Active`, nếu không có thì chọn học kỳ gần nhất. |
+| `DX-007` | Điểm analytics chỉ dùng `Published`/`Locked`, chuẩn hóa về thang 10; đạt khi `>= 5`. |
+| `DX-008` | Data Quality chỉ đọc và đếm lỗi; không tự động sửa dữ liệu học vụ. |
+| `DX-009` | Monitoring trả Redis/Hangfire/Outbox/integration/email/report metrics nhưng không lộ connection string hoặc secret. |
+| `DX-010` | XtraReport Viewer và export chỉ dùng dataset đã authorize; format export giới hạn `pdf`, `xlsx`, `csv`. |
+| `DX-011` | Viewer request qua Portal BFF phải có Bearer token; refresh token không được đưa vào JavaScript. |
+| `DX-012` | Weekly analytics digest chỉ gửi SystemAdmin active và dùng `EmailDigestDelivery` idempotency key theo recipient/period/template. |
+| `DX-013` | PDF System Analytics phải dùng A4 Portrait và mọi control nằm trong printable width; không tạo trang chỉ chứa phần tràn ngang. |
+| `DX-014` | Catalog chỉ nhận `executive-summary`, `academic-by-grade`, `data-quality`; hai report chi tiết phải group bằng `GroupHeaderBand` theo GradeLevel hoặc Severity. |
+| `DX-015` | Dashboard và report Data Quality chỉ liệt kê issue có `Count > 0`; issue bằng 0 không phải công việc cần xử lý. |
+
+## Account administration security rules
+
+| ID | Rule |
+|---|---|
+| `ACCOUNT-001` | Mọi lần cập nhật tài khoản phải có lý do từ 10 đến 500 ký tự. |
+| `ACCOUNT-002` | Không cho SystemAdmin tự hạ quyền hoặc tự khóa tài khoản. |
+| `ACCOUNT-003` | Không cho hạ quyền/khóa SystemAdmin active cuối cùng. |
+| `ACCOUNT-004` | Không đổi role/khóa tài khoản còn assignment hoặc relation nghiệp vụ active. |
+| `ACCOUNT-005` | Đổi role/trạng thái phải rotate SecurityStamp và revoke toàn bộ refresh token active. |
+| `ACCOUNT-006` | Audit log phải ghi actor, target, before/after và reason nhưng không ghi secret. |
+
+| ID | Case | Expected |
+|---|---|---|
+| `TC-ACCOUNT-01` | Update không có lý do hoặc lý do dưới 10 ký tự | `400 Validation`; tài khoản không thay đổi. |
+| `TC-ACCOUNT-02` | SystemAdmin tự hạ quyền | `409 People.SelfAdminChangeForbidden`. |
+| `TC-ACCOUNT-03` | Đổi role một tài khoản hợp lệ | Thành công; refresh token cũ bị thu hồi và audit log có before/after. |
+
+| ID | Case | Expected |
+|---|---|---|
+| `TC-DX-01` | Anonymous/role khác gọi DevExpress endpoint | `401/403`; không trả dashboard/report data. |
+| `TC-DX-02` | SystemAdmin yêu cầu sửa dashboard từ browser | Restricted controller từ chối. |
+| `TC-DX-03` | Build thiếu hoặc sai private license | Build fail bằng DevExpress license error. |
+| `TC-DX-04` | SystemAdmin gọi overview không có `semesterId` | `200`; trả học kỳ active/gần nhất và danh sách học kỳ khả dụng. |
+| `TC-DX-05` | Gọi analytics với `semesterId` không tồn tại | `404 Analytics.SemesterNotFound`. |
+| `TC-DX-06` | Có điểm Draft/Submitted/Published/Locked | Average/pass rate chỉ tính Published và Locked; status chart vẫn đếm đủ. |
+| `TC-DX-07` | Học sinh active thiếu enrollment hoặc parent link | Data Quality trả đúng issue code và count, không sửa dữ liệu. |
+| `TC-DX-08` | SystemAdmin gọi `/api/v1/admin/monitoring` | Trả cache, Hangfire, Outbox và ba queue status collections. |
+| `TC-DX-09` | Export `format=pdf` | `200 application/pdf`, nội dung bắt đầu `%PDF`. |
+| `TC-DX-10` | Export format ngoài allow-list | `400 AnalyticsReport.UnsupportedFormat`. |
+| `TC-DX-11` | Viewer/BFF request thiếu token | `401`; không resolve report hoặc export document. |
+| `TC-DX-12` | Weekly job retry sau delivery Sent | Bỏ qua recipient; không gửi trùng cùng period/template. |
+| `TC-DX-13` | Export PDF có bảng nhiều cột | Nội dung nằm trong A4 printable width; không xuất hiện trang phụ chỉ chứa lát cắt của bảng. |
+| `TC-DX-14` | Viewer mở `admin-academic-by-grade--{semesterId}` | Report chia group theo khối; mỗi lớp chỉ nằm trong group khối tương ứng. |
+| `TC-DX-15` | Export `reportType=data-quality` | File chia group theo severity và tổng số bản ghi ảnh hưởng của group khớp dataset. |

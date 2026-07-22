@@ -1,6 +1,6 @@
 # EduHub Frontend API Readiness
 
-Đối chiếu trực tiếp Swagger `http://localhost:8080/swagger/v1/swagger.json` ngày 2026-07-14.
+Đối chiếu source API/Portal ngày 2026-07-22; chờ chạy Swagger gate sau Build/Test.
 
 ## READY
 
@@ -15,7 +15,9 @@
 | Parent published grade | `GET /assignments/{assignmentId}/students/{studentId}/grades/published` | Deep-link từ notification |
 | Notifications | List + mark read | Filtered inbox + optimistic rollback |
 | Reports | Create/status/download | Async job card + polling + SignalR invalidation |
-| Health | `/health/ready` | Dependency status for SystemAdmin UI |
+| Health/Monitoring | `/health/ready`, `/api/v1/admin/monitoring` | Dependency cards + Redis/Hangfire/queue dashboard |
+| Admin analytics | `/api/v1/admin/analytics/overview`, `/academic`, `/data-quality` | DevExtreme KPI, charts, grids và semester filter |
+| Admin reporting | `/DXXRDV`, `/api/v1/admin/analytics/report/export` | DevExpress Viewer + PDF/XLSX/CSV |
 | Realtime | `/hubs/notifications`, event `NotificationReceived` | One connection per authenticated tab |
 
 ## BACKEND_GAP / FEATURE-GATED
@@ -30,6 +32,6 @@
 | Class roster/transfer/withdraw UI | Class detail + enrollment roster read model |
 | Report archive | Report job list by current user/student |
 | Ministry monitor | Sync record list/filter API |
-| System users/audit/settings | User CRUD, audit query and settings APIs |
+| Audit/settings | Audit query và runtime settings APIs |
 
 Feature `BACKEND_GAP` không xuất hiện trong production navigation. Mutation rời rạc không được bật nếu thiếu read model để người dùng chọn đúng đối tượng.

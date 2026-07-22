@@ -65,7 +65,7 @@ public static class DevelopmentSchoolSeeder
         await EnsureCapabilitiesAsync(dbContext, teachers, subjects, cancellationToken);
         await EnsureCurriculumAsync(dbContext, academicYear, subjects, cancellationToken);
         await EnsureHomeroomsAsync(dbContext, classes, teachers, cancellationToken);
-        await EnsureStudentsAsync(dbContext, classes, semesters["HK1"], seedPasswordHash, cancellationToken);
+        await EnsureStudentsAsync(dbContext, classes, semesters.Values.ToList(), seedPasswordHash, cancellationToken);
     }
 
     /// <summary>
@@ -280,9 +280,9 @@ public static class DevelopmentSchoolSeeder
     }
 
     /// <summary>
-    /// Ghi chú: EnsureStudentsAsync tạo đủ 30 học sinh/lớp, tài khoản Student/Parent, link và enrollment HK1.
+    /// Ghi chú: EnsureStudentsAsync tạo đủ 30 học sinh/lớp, tài khoản Student/Parent, link và enrollment cho mọi học kỳ mẫu.
     /// </summary>
-    private static async Task EnsureStudentsAsync(ApplicationDbContext dbContext, IReadOnlyList<ClassRoom> classes, Semester semester, string seedPasswordHash, CancellationToken cancellationToken)
+    private static async Task EnsureStudentsAsync(ApplicationDbContext dbContext, IReadOnlyList<ClassRoom> classes, IReadOnlyList<Semester> semesters, string seedPasswordHash, CancellationToken cancellationToken)
     {
         var users = await dbContext.Users.ToDictionaryAsync(user => user.NormalizedEmail, cancellationToken);
         var students = await dbContext.Students.ToDictionaryAsync(student => student.NormalizedStudentCode, cancellationToken);
@@ -328,12 +328,19 @@ public static class DevelopmentSchoolSeeder
                 }
 
                 if (links.Add((parent.Id, student.Id))) dbContext.ParentStudents.Add(new ParentStudent(parent.Id, student.Id, seat % 2 == 0 ? "Mẹ" : "Cha", DateTime.UtcNow));
-                if (enrollments.Add((student.Id, classRoom.Id, semester.Id))) dbContext.Enrollments.Add(new Enrollment(student.Id, classRoom.Id, semester.Id, DateTime.UtcNow));
+                foreach (var semester in semesters)
+                {
+                    if (enrollments.Add((student.Id, classRoom.Id, semester.Id)))
+                    {
+                        dbContext.Enrollments.Add(new Enrollment(student.Id, classRoom.Id, semester.Id, DateTime.UtcNow));
+                    }
+                }
             }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        var activeCounts = await dbContext.Enrollments.Where(enrollment => enrollment.SemesterId == semester.Id && enrollment.Status == EnrollmentStatus.Active)
+        var activeSemesterId = semesters.OrderByDescending(semester => semester.StartDate).First().Id;
+        var activeCounts = await dbContext.Enrollments.Where(enrollment => enrollment.SemesterId == activeSemesterId && enrollment.Status == EnrollmentStatus.Active)
             .GroupBy(enrollment => enrollment.ClassRoomId).Select(group => new { ClassRoomId = group.Key, Count = group.Count() }).ToDictionaryAsync(item => item.ClassRoomId, item => item.Count, cancellationToken);
         foreach (var classRoom in classes) classRoom.SynchronizeActiveEnrollmentCount(activeCounts.GetValueOrDefault(classRoom.Id), DateTime.UtcNow);
         await dbContext.SaveChangesAsync(cancellationToken);

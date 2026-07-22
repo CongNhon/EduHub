@@ -6,5 +6,6 @@
     <LangVersion>14.0</LangVersion>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);DX1000</WarningsNotAsErrors>
   </PropertyGroup>
 </Project>

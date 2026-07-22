@@ -1,4 +1,6 @@
 ﻿using Carter;
+using DevExpress.AspNetCore;
+using DevExpress.DashboardAspNetCore;
 using EduHub.Application;
 using EduHub.Infrastructure;
 using EduHub.Infrastructure.Audit;
@@ -7,6 +9,7 @@ using EduHub.Application.Interfaces.Authentication;
 using EduHub.Infrastructure.Services.Jobs;
 using EduHub.WebApi.Hubs;
 using EduHub.WebApi.Health;
+using EduHub.WebApi.DevExpress;
 using EduHub.WebApi.Middleware;
 using EduHub.WebApi.OpenApi;
 using EduHub.WebApi.Realtime;
@@ -29,6 +32,7 @@ builder.Host.UseSerilog((context, _, loggerConfiguration) =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddCarter();
+builder.Services.AddEduHubDevExpress();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
 builder.Services.AddEduHubSwagger();
@@ -61,6 +65,7 @@ app.UseSerilogRequestLogging(options =>
 });
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseRateLimiter();
+app.UseDevExpressControls();
 
 if (app.Environment.IsDevelopment())
 {
@@ -90,6 +95,8 @@ if (dashboardEnabled)
 }
 
 app.MapCarter();
+app.MapControllers();
+app.MapDashboardRoute("api/devexpress/dashboard", "EduHubDashboard");
 app.MapHub<NotificationsHub>("/hubs/notifications");
 app.MapHealthChecks("/health", EduHubHealthResponseWriter.ReadyOptions()).RequireAuthorization(AuthPolicies.SystemAdmin);
 app.MapHealthChecks("/health/live", EduHubHealthResponseWriter.LiveOptions()).AllowAnonymous();
@@ -109,6 +116,11 @@ recurringJobs.AddOrUpdate<WeeklyDigestJob>(
     "weekly-grade-digest",
     job => job.SendWeeklyDigestAsync(CancellationToken.None),
     "0 23 * * 0",
+    new RecurringJobOptions { TimeZone = VietnamTimeZone() });
+recurringJobs.AddOrUpdate<WeeklyAdminAnalyticsDigestJob>(
+    "weekly-admin-analytics-digest",
+    job => job.SendAsync(CancellationToken.None),
+    "30 6 * * 1",
     new RecurringJobOptions { TimeZone = VietnamTimeZone() });
 
 app.Run();

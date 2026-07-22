@@ -22,6 +22,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DevExpress_License: ${{ secrets.DevExpressLicenseKey }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -30,4 +32,4 @@ jobs:
       - run: dotnet restore BE/EduHub.sln
       - run: dotnet build BE/EduHub.sln --configuration Release --no-restore
       - run: dotnet test BE/EduHub.sln --configuration Release --no-build
-      - run: docker build --tag eduhub-api:ci BE
+      - run: docker build --secret id=devexpress_license,env=DevExpress_License --tag eduhub-api:ci BE

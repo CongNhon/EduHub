@@ -99,8 +99,9 @@ public sealed class DailyDigestJob(
         Guid parentUserId,
         DateTime periodStart,
         DateTime periodEnd,
-        CancellationToken cancellationToken) =>
-        await dbContext.ParentStudents
+        CancellationToken cancellationToken)
+    {
+        var rows = await dbContext.ParentStudents
             .AsNoTracking()
             .Where(link => link.ParentUserId == parentUserId && link.IsActive)
             .Join(
@@ -120,14 +121,25 @@ public sealed class DailyDigestJob(
                 dbContext.GradeComponents.AsNoTracking(),
                 row => row.Entry.ComponentId,
                 component => component.Id,
-                (row, component) => new GradeDigestEmailItem(
+                (row, component) => new
+                {
                     row.StudentName,
-                    component.Name,
+                    ComponentName = component.Name,
                     row.Entry.Score,
                     component.MaxScore,
-                    row.Entry.Status.ToString(),
-                    row.Entry.PublishedAtUtc!.Value))
-            .OrderBy(item => item.StudentName)
-            .ThenBy(item => item.ComponentName)
+                    row.Entry.Status,
+                    PublishedAtUtc = row.Entry.PublishedAtUtc!.Value
+                })
+            .OrderBy(row => row.StudentName)
+            .ThenBy(row => row.ComponentName)
             .ToListAsync(cancellationToken);
+
+        return rows.Select(row => new GradeDigestEmailItem(
+            row.StudentName,
+            row.ComponentName,
+            row.Score,
+            row.MaxScore,
+            row.Status.ToString(),
+            row.PublishedAtUtc)).ToList();
+    }
 }

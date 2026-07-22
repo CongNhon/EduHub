@@ -2,6 +2,7 @@
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="ClosedXML" />
+    <PackageReference Include="DevExpress.Reporting.Core" />
     <ProjectReference Include="..\EduHub.Application\EduHub.Application.csproj" />
     <ProjectReference Include="..\EduHub.Domain\EduHub.Domain.csproj" />
   </ItemGroup>

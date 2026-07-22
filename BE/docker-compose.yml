@@ -5,6 +5,8 @@ x-api-image: &api-image
   build:
     context: .
     dockerfile: Dockerfile
+    secrets:
+      - devexpress_license
 
 x-api-security: &api-security
   init: true
@@ -40,6 +42,7 @@ services:
       Audit__Mongo__ServerSelectionTimeoutMilliseconds: ${Audit__Mongo__ServerSelectionTimeoutMilliseconds:-1000}
       Grades__AutoLockAfterDays: ${Grades__AutoLockAfterDays:-7}
       Hangfire__DashboardEnabled: ${Hangfire__DashboardEnabled:-true}
+      Frontend__PortalBaseUrl: ${Frontend__PortalBaseUrl:-http://localhost:3001}
       Reports__StoragePath: /app/data/reports
       MinistryApi__BaseUrl: ${MinistryApi__BaseUrl:-https://localhost:9443}
       MinistryApi__ApiKey: ${MinistryApi__ApiKey:-}
@@ -172,3 +175,7 @@ volumes:
   profile_evidence:
   report_files:
   redis_data:
+
+secrets:
+  devexpress_license:
+    file: ${APPDATA:?APPDATA is required}/DevExpress/DevExpress_License.txt
