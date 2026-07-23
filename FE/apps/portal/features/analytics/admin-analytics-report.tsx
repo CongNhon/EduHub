@@ -34,13 +34,14 @@ const REPORT_OPTIONS: ReportOption[] = [
 /** AdminAnalyticsReport hiển thị XtraReport bằng Web Document Viewer và cho phép export file chuẩn. */
 export function AdminAnalyticsReport() {
   const { request, accessToken } = useSession();
-  const [host, setHost] = useState<string>();
+ // const [host, setHost] = useState<string>();
+    const host = "/api/backend/";
   const [semesterId, setSemesterId] = useState<string>();
   const [reportType, setReportType] = useState(REPORT_OPTIONS[0].value);
   const [exporting, setExporting] = useState<string>();
   const overview = useQuery({ queryKey: ["admin-analytics", "report-semesters"], queryFn: () => request<Envelope<AdminOverviewDto>>("/api/v1/admin/analytics/overview") });
 
-  useEffect(() => setHost(`${window.location.origin}/api/backend/`), []);
+  //useEffect(() => setHost(`${window.location.origin}/api/backend/`), []);
   useEffect(() => {
     const authorization = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
     fetchSetup.fetchSettings.headers = { ...fetchSetup.fetchSettings.headers, ...authorization };
