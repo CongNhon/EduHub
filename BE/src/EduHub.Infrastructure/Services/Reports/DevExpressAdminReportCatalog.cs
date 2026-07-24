@@ -11,6 +11,9 @@ internal static class DevExpressAdminReportCatalog
     public const string ExecutiveSummaryViewerName = "admin-system-analytics";
     public const string AcademicByGradeViewerName = "admin-academic-by-grade";
     public const string DataQualityViewerName = "admin-data-quality";
+    public const string ScoreDistributionViewerName = "admin-score-distribution";
+    public const string AcademicTrendViewerName = "admin-academic-trend";
+    public const string StudentRiskViewerName = "admin-student-risk";
 
     /// <summary>
     /// Ghi chú: Create tạo đúng mẫu báo cáo tổng quan, học lực theo khối hoặc chất lượng dữ liệu theo mức độ.
@@ -20,6 +23,9 @@ internal static class DevExpressAdminReportCatalog
         AdminAnalyticsReportTypes.ExecutiveSummary => DevExpressAdminAnalyticsReportFactory.Create(data),
         AdminAnalyticsReportTypes.AcademicByGrade => DevExpressGroupedAnalyticsReportFactory.CreateAcademicByGrade(data),
         AdminAnalyticsReportTypes.DataQuality => DevExpressGroupedAnalyticsReportFactory.CreateDataQuality(data),
+        AdminAnalyticsReportTypes.ScoreDistribution => DevExpressAdvancedAnalyticsReportFactory.CreateScoreDistribution(data),
+        AdminAnalyticsReportTypes.AcademicTrend => DevExpressAdvancedAnalyticsReportFactory.CreateAcademicTrend(data),
+        AdminAnalyticsReportTypes.StudentRisk => DevExpressAdvancedAnalyticsReportFactory.CreateStudentRisk(data),
         _ => throw new InvalidOperationException($"Unknown analytics report type '{reportType}'.")
     };
 
@@ -47,6 +53,9 @@ internal static class DevExpressAdminReportCatalog
             ExecutiveSummaryViewerName => AdminAnalyticsReportTypes.ExecutiveSummary,
             AcademicByGradeViewerName => AdminAnalyticsReportTypes.AcademicByGrade,
             DataQualityViewerName => AdminAnalyticsReportTypes.DataQuality,
+            ScoreDistributionViewerName => AdminAnalyticsReportTypes.ScoreDistribution,
+            AcademicTrendViewerName => AdminAnalyticsReportTypes.AcademicTrend,
+            StudentRiskViewerName => AdminAnalyticsReportTypes.StudentRisk,
             _ => throw new InvalidOperationException("Unknown DevExpress report name.")
         };
 

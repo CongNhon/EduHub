@@ -9,8 +9,12 @@ RUN --mount=type=secret,id=devexpress_license,required=true \
 RUN --mount=type=secret,id=devexpress_license,required=true \
     export DevExpress_License="$(cat /run/secrets/devexpress_license)" \
     && dotnet publish src/EduHub.WebApi/EduHub.WebApi.csproj --configuration Release --output /app/publish --no-restore
-RUN dotnet publish tools/EduHub.DatabaseManager/EduHub.DatabaseManager.csproj --configuration Release --output /app/database-manager --no-restore
-
+RUN --mount=type=secret,id=devexpress_license,required=true \
+    export DevExpress_License="$(cat /run/secrets/devexpress_license)" \
+    && dotnet publish tools/EduHub.DatabaseManager/EduHub.DatabaseManager.csproj \
+        --configuration Release \
+        --output /app/database-manager \
+        --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 

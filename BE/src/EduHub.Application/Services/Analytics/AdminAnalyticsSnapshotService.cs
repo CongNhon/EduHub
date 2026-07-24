@@ -10,10 +10,11 @@ namespace EduHub.Application.Services.Analytics;
 /// </summary>
 public sealed class AdminAnalyticsSnapshotService(
     IAdminAnalyticsRepository repository,
+    IAdminAdvancedAnalyticsService advancedAnalyticsService,
     TimeProvider timeProvider) : IAdminAnalyticsSnapshotService
 {
     /// <summary>
-    /// Ghi chú: ReadAsync khóa học kỳ một lần rồi tổng hợp ba dataset với cùng thời điểm tạo.
+    /// Ghi chú: ReadAsync khóa học kỳ một lần rồi tổng hợp các dataset với cùng thời điểm tạo.
     /// </summary>
     public async Task<Result<AdminAnalyticsReportData>> ReadAsync(Guid? semesterId, CancellationToken cancellationToken)
     {
@@ -30,6 +31,26 @@ public sealed class AdminAnalyticsSnapshotService(
         var overview = await repository.GetOverviewAsync(context, generatedAtUtc, cancellationToken);
         var academic = await repository.GetAcademicAnalyticsAsync(context.SelectedSemester, generatedAtUtc, cancellationToken);
         var dataQuality = await repository.GetDataQualityAsync(context.SelectedSemester, generatedAtUtc, cancellationToken);
-        return Result.Success(new AdminAnalyticsReportData(overview, academic, dataQuality));
+
+        // Fetch advanced analytics data with default settings
+        var filter = new AdminAdvancedAnalyticsFilter(SemesterId: context.SelectedSemester.Id);
+
+        var distributionTask = advancedAnalyticsService.ReadDistributionAsync(filter, "class", cancellationToken);
+        var trendTask = advancedAnalyticsService.ReadTrendsAsync(filter, 4, cancellationToken);
+        var riskTask = advancedAnalyticsService.ReadStudentRiskAsync(filter, cancellationToken);
+
+        await Task.WhenAll(distributionTask, trendTask, riskTask);
+
+        var distribution = (await distributionTask).Value;
+        var trends = (await trendTask).Value;
+        var risk = (await riskTask).Value;
+
+        return Result.Success(new AdminAnalyticsReportData(
+            overview,
+            academic,
+            dataQuality,
+            distribution,
+            trends,
+            risk));
     }
 }

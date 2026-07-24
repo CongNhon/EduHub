@@ -1,4 +1,5 @@
 ﻿using EduHub.Application.Common.Behaviors;
+using EduHub.Application.Common.Options;
 using EduHub.Application.Interfaces.Services.Academics;
 using EduHub.Application.Interfaces.Services.Analytics;
 using EduHub.Application.Interfaces.Services.Authentication;
@@ -48,6 +49,11 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddSingleton(new PerformanceOptions());
+        services.AddSingleton<IAcademicStatisticsCalculator, AcademicStatisticsCalculator>();
+        services.AddSingleton<IComparativeAnalyticsCalculator, ComparativeAnalyticsCalculator>();
+        services.AddSingleton<IStudentRiskCalculator, StudentRiskCalculator>();
+        services.AddSingleton<IDataQualityScoreCalculator, DataQualityScoreCalculator>();
+        services.AddScoped<IAdminAdvancedAnalyticsService, AdminAdvancedAnalyticsService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAcademicService, AcademicService>();
         services.AddScoped<IAdminAnalyticsService, AdminAnalyticsService>();

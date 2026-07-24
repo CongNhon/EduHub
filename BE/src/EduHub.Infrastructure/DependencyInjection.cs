@@ -1,4 +1,5 @@
 ﻿using EduHub.Application.Interfaces.Data;
+using EduHub.Application.Common.Options;
 using EduHub.Application.Interfaces.Authentication;
 using EduHub.Application.Interfaces.Repositories.Academics;
 using EduHub.Application.Interfaces.Repositories.Analytics;
@@ -97,6 +98,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthRepository, AuthRepository>();
         services.AddScoped<IAcademicRepository, AcademicRepository>();
         services.AddScoped<IAdminAnalyticsRepository, AdminAnalyticsRepository>();
+        services.AddScoped<IAdminAdvancedAnalyticsRepository, AdminAdvancedAnalyticsRepository>();
         services.AddScoped<IStudentRepository, StudentRepository>();
         services.AddScoped<IClassRepository, ClassRepository>();
         services.AddScoped<IGradeConfigurationRepository, GradeConfigurationRepository>();
@@ -165,6 +167,7 @@ public static class DependencyInjection
                 : UserRole.SystemAdmin;
         });
         services.Configure<SchoolProfileOptions>(configuration.GetSection("School"));
+        services.Configure<AdvancedAnalyticsOptions>(configuration.GetSection("AdvancedAnalytics"));
 
         var ministryBaseUrl = configuration["MinistryApi:BaseUrl"] ?? "https://localhost:9443";
         var ministryTimeoutSeconds = int.TryParse(configuration["MinistryApi:TimeoutSeconds"], out var configuredTimeoutSeconds)

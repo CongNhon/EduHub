@@ -17,12 +17,18 @@ public static class AdminAnalyticsReportTypes
     public const string ExecutiveSummary = "executive-summary";
     public const string AcademicByGrade = "academic-by-grade";
     public const string DataQuality = "data-quality";
+    public const string ScoreDistribution = "score-distribution";
+    public const string AcademicTrend = "academic-trend";
+    public const string StudentRisk = "student-risk";
 
     private static readonly HashSet<string> Supported = new(StringComparer.OrdinalIgnoreCase)
     {
         ExecutiveSummary,
         AcademicByGrade,
-        DataQuality
+        DataQuality,
+        ScoreDistribution,
+        AcademicTrend,
+        StudentRisk
     };
 
     /// <summary>
@@ -37,7 +43,10 @@ public static class AdminAnalyticsReportTypes
 public sealed record AdminAnalyticsReportData(
     AdminOverviewResponse Overview,
     AdminAcademicAnalyticsResponse Academic,
-    AdminDataQualityResponse DataQuality);
+    AdminDataQualityResponse DataQuality,
+    AcademicDistributionResponse? AdvancedDistribution = null,
+    AcademicTrendResponse? AdvancedTrend = null,
+    StudentRiskResponse? AdvancedRisk = null);
 
 /// <summary>
 /// Ghi chú: RenderedAdminAnalyticsReport chứa bytes và metadata do DevExpress report renderer tạo ra.

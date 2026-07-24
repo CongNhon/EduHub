@@ -53,7 +53,7 @@ public sealed class AdminAnalyticsReportService(
         {
             return Result.Failure<AdminAnalyticsReportFileResponse>(new Error(
                 "AnalyticsReport.UnsupportedReportType",
-                "Supported report types are executive-summary, academic-by-grade and data-quality.",
+                "Mẫu báo cáo không được hỗ trợ hoặc không tồn tại.",
                 ErrorType.Validation));
         }
 

@@ -171,25 +171,28 @@ public sealed class AdminAnalyticsRepository(ApplicationDbContext dbContext) : I
             cancellationToken);
 
         var distributionRows = await publishedGrades
-            .GroupBy(entry => entry.Score * 10m < entry.Component.MaxScore * 5m
+            .GroupBy(entry => entry.Score * 10m < entry.Component.MaxScore * 3m
                 ? 0
-                : entry.Score * 10m < entry.Component.MaxScore * 6.5m
+                : entry.Score * 10m < entry.Component.MaxScore * 5m
                     ? 1
-                    : entry.Score * 10m < entry.Component.MaxScore * 8m
+                    : entry.Score * 10m < entry.Component.MaxScore * 6.5m
                         ? 2
-                        : entry.Score * 10m < entry.Component.MaxScore * 9m
+                        : entry.Score * 10m < entry.Component.MaxScore * 8m
                             ? 3
-                            : 4)
+                            : entry.Score * 10m < entry.Component.MaxScore * 9m
+                                ? 4
+                                : 5)
             .Select(group => new { Bucket = group.Key, Count = group.Count() })
             .ToListAsync(cancellationToken);
         var distributionCounts = distributionRows.ToDictionary(row => row.Bucket, row => row.Count);
         var gradeDistribution = new List<GradeDistributionBucketResponse>
         {
-            new("Dưới 5", 0m, 5m, distributionCounts.GetValueOrDefault(0)),
-            new("5 - dưới 6.5", 5m, 6.5m, distributionCounts.GetValueOrDefault(1)),
-            new("6.5 - dưới 8", 6.5m, 8m, distributionCounts.GetValueOrDefault(2)),
-            new("8 - dưới 9", 8m, 9m, distributionCounts.GetValueOrDefault(3)),
-            new("9 - 10", 9m, null, distributionCounts.GetValueOrDefault(4))
+            new("Dưới 3 (Kém)", 0m, 3m, distributionCounts.GetValueOrDefault(0)),
+            new("3 - dưới 5 (Yếu)", 3m, 5m, distributionCounts.GetValueOrDefault(1)),
+            new("5 - dưới 6.5 (TB)", 5m, 6.5m, distributionCounts.GetValueOrDefault(2)),
+            new("6.5 - dưới 8 (Khá)", 6.5m, 8m, distributionCounts.GetValueOrDefault(3)),
+            new("8 - dưới 9 (Giỏi)", 8m, 9m, distributionCounts.GetValueOrDefault(4)),
+            new("9 - 10 (Xuất sắc)", 9m, 10m, distributionCounts.GetValueOrDefault(5))
         };
 
         var subjectRows = await publishedGrades
