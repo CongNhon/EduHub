@@ -29,6 +29,9 @@ const REPORT_OPTIONS: ReportOption[] = [
   { value: "executive-summary", viewerName: "admin-system-analytics", label: "Tổng quan điều hành", description: "KPI toàn trường, học lực, lớp và chất lượng dữ liệu.", grouped: false },
   { value: "academic-by-grade", viewerName: "admin-academic-by-grade", label: "Kết quả theo khối", description: "Nhóm lớp theo khối 10, 11, 12 và đối chiếu điểm công bố.", grouped: true },
   { value: "data-quality", viewerName: "admin-data-quality", label: "Chất lượng dữ liệu", description: "Nhóm vấn đề theo Critical, Warning và mức độ còn lại.", grouped: true },
+  { value: "score-distribution", viewerName: "admin-score-distribution", label: "Phân bổ điểm số", description: "Thống kê mô tả chi tiết và phân nhóm dải điểm.", grouped: false },
+  { value: "academic-trend", viewerName: "admin-academic-trend", label: "Xu hướng học tập", description: "Theo dõi biến động điểm số qua các học kỳ.", grouped: false },
+  { value: "student-risk", viewerName: "admin-student-risk", label: "Rủi ro học sinh", description: "Danh sách học sinh có nguy cơ học thuật cần hỗ trợ.", grouped: false },
 ];
 
 /** AdminAnalyticsReport hiển thị XtraReport bằng Web Document Viewer và cho phép export file chuẩn. */

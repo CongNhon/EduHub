@@ -1,37 +1,47 @@
 "use client";
 
-import { Button } from "@eduhub/ui";
 import { useQuery } from "@tanstack/react-query";
 import Chart, { Animation, ArgumentAxis, Label, Legend, Point, Series, Tooltip, ValueAxis } from "devextreme-react/chart";
 import DataGrid, { Column, FilterRow, HeaderFilter, Pager, Paging, SearchPanel } from "devextreme-react/data-grid";
 import PieChart, { Animation as PieAnimation, Label as PieLabel, Legend as PieLegend, Series as PieSeries, Tooltip as PieTooltip } from "devextreme-react/pie-chart";
-import SelectBox from "devextreme-react/select-box";
-import { AlertTriangle, BookOpenCheck, Boxes, RefreshCw, ShieldAlert, Users, UserRoundCheck } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, BookOpenCheck, ShieldAlert, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { ErrorPanel, LoadingPanel, MetricCard } from "@/components/api-panel";
 import { PageHeader } from "@/components/page-header";
 import { sessionErrorMessage, useSession } from "@/components/session-provider";
-import type { AdminAcademicAnalyticsDto, AdminDataQualityDto, AdminOverviewDto, Envelope } from "@/lib/domain";
+import type { AdminAcademicAnalyticsDto, AdminDataQualityDto, AdminOverviewDto, AdminAdvancedSummaryDto, CommonDecimalMetricDto, Envelope } from "@/lib/domain";
 import { formatDateTime, statusLabel } from "@/lib/domain";
+import { AdvancedAnalyticsFilterBar } from "./components/advanced-analytics-filter-bar";
+import { useAnalyticsFilters } from "@/lib/use-analytics-filters";
 
-/** AdminAnalyticsDashboard hiển thị analytics thật của trường bằng DevExtreme charts, grids và semester filter. */
+/** AdminAnalyticsDashboard hiển thị analytics thật của trường bằng DevExtreme charts, grids và bộ lọc nâng cao. */
 export function AdminAnalyticsDashboard() {
   const { request } = useSession();
-  const [semesterId, setSemesterId] = useState<string>();
-  const query = semesterId ? `?semesterId=${semesterId}` : "";
-  const overview = useQuery({ queryKey: ["admin-analytics", "overview", semesterId], queryFn: () => request<Envelope<AdminOverviewDto>>(`/api/v1/admin/analytics/overview${query}`), refetchInterval: 60_000 });
-  const academic = useQuery({ queryKey: ["admin-analytics", "academic", semesterId], queryFn: () => request<Envelope<AdminAcademicAnalyticsDto>>(`/api/v1/admin/analytics/academic${query}`), refetchInterval: 60_000 });
-  const quality = useQuery({ queryKey: ["admin-analytics", "data-quality", semesterId], queryFn: () => request<Envelope<AdminDataQualityDto>>(`/api/v1/admin/analytics/data-quality${query}`), refetchInterval: 60_000 });
+  const [filters] = useAnalyticsFilters();
 
-  if (overview.isLoading || academic.isLoading || quality.isLoading) return <><PageHeader eyebrow="DEVEXPRESS ANALYTICS" title="Điều hành toàn trường" /><LoadingPanel rows={9} /></>;
-  const error = overview.error || academic.error || quality.error;
-  if (error) return <><PageHeader eyebrow="DEVEXPRESS ANALYTICS" title="Điều hành toàn trường" /><ErrorPanel message={sessionErrorMessage(error)} onRetry={() => refreshAll(overview.refetch, academic.refetch, quality.refetch)} /></>;
+  const queryParams = new URLSearchParams();
+  if (filters.semesterId) queryParams.set("semesterId", filters.semesterId);
+  if (filters.previousSemesterId) queryParams.set("previousSemesterId", filters.previousSemesterId);
+  filters.gradeLevels.forEach(v => queryParams.append("gradeLevels", String(v)));
+  filters.classIds.forEach(v => queryParams.append("classIds", v));
+  filters.subjectIds.forEach(v => queryParams.append("subjectIds", v));
+  filters.teacherIds.forEach(v => queryParams.append("teacherIds", v));
+  const query = queryParams.toString() ? `?${queryParams.toString()}` : "";
+
+  const overview = useQuery({ queryKey: ["admin-analytics", "overview", filters], queryFn: () => request<Envelope<AdminOverviewDto>>(`/api/v1/admin/analytics/overview${query}`), refetchInterval: 60_000 });
+  const academic = useQuery({ queryKey: ["admin-analytics", "academic", filters], queryFn: () => request<Envelope<AdminAcademicAnalyticsDto>>(`/api/v1/admin/analytics/academic${query}`), refetchInterval: 60_000 });
+  const quality = useQuery({ queryKey: ["admin-analytics", "data-quality", filters], queryFn: () => request<Envelope<AdminDataQualityDto>>(`/api/v1/admin/analytics/data-quality${query}`), refetchInterval: 60_000 });
+  const advanced = useQuery({ queryKey: ["admin-analytics", "advanced-summary", filters], queryFn: () => request<Envelope<AdminAdvancedSummaryDto>>(`/api/v1/admin/analytics/advanced/summary${query}`), refetchInterval: 60_000 });
+
+  if (overview.isLoading || academic.isLoading || quality.isLoading || advanced.isLoading) return <><PageHeader eyebrow="DEVEXPRESS ANALYTICS" title="Điều hành toàn trường" /><LoadingPanel rows={9} /></>;
+  const error = overview.error || academic.error || quality.error || advanced.error;
+  if (error) return <><PageHeader eyebrow="DEVEXPRESS ANALYTICS" title="Điều hành toàn trường" /><ErrorPanel message={sessionErrorMessage(error)} onRetry={() => refreshAll(overview.refetch, academic.refetch, quality.refetch, advanced.refetch)} /></>;
 
   const overviewData = overview.data?.data;
   const academicData = academic.data?.data;
   const qualityData = quality.data?.data;
-  if (!overviewData || !academicData || !qualityData) return null;
-  const selectedSemesterId = semesterId || overviewData.semester.id;
+  const advancedData = advanced.data?.data;
+  if (!overviewData || !academicData || !qualityData || !advancedData) return null;
+
   const operationalQueueTotal = overviewData.pendingProfileChangeRequests + overviewData.openReportRequests + overviewData.pendingOutboxMessages + overviewData.failedExternalSyncs;
   const actionableIssues = qualityData.issues.filter((item) => item.count > 0);
   const gradeStatusTotal = academicData.gradeStatuses.reduce((total, item) => total + item.count, 0);
@@ -42,24 +52,22 @@ export function AdminAnalyticsDashboard() {
       eyebrow="DEVEXPRESS ANALYTICS"
       title="Điều hành toàn trường"
       description="Theo dõi quy mô vận hành, kết quả học tập và chất lượng dữ liệu trên cùng một màn hình."
-      actions={<div className="analytics-actions">
-        <SelectBox dataSource={overviewData.availableSemesters} valueExpr="id" displayExpr={semesterLabel} value={selectedSemesterId} width={270} inputAttr={{ "aria-label": "Chọn học kỳ báo cáo" }} onValueChanged={(event) => setSemesterId(event.value as string)} />
-        <Button variant="outline" onClick={() => refreshAll(overview.refetch, academic.refetch, quality.refetch)}><RefreshCw size={16} /> Làm mới</Button>
-      </div>}
     />
 
+    <AdvancedAnalyticsFilterBar onRefresh={() => refreshAll(overview.refetch, academic.refetch, quality.refetch, advanced.refetch)} />
+
     <section className="analytics-command-bar">
-      <div><span>NGỮ CẢNH BÁO CÁO</span><strong>{overviewData.semester.academicYearName} · {overviewData.semester.name}</strong><small>Cập nhật {formatDateTime(overviewData.generatedAtUtc)}</small></div>
+      <div><span>NGỮ CẢNH BÁO CÁO</span><strong>{overviewData.semester.academicYearName} · {overviewData.semester.name}</strong><small>Cập nhật {formatDateTime(advancedData.metadata.generatedAt)}</small></div>
       <div className={`analytics-health ${qualityData.criticalFindings > 0 ? "analytics-health--warning" : ""}`}><i /> <span>{qualityData.criticalFindings > 0 ? `${qualityData.criticalFindings} lỗi nghiêm trọng` : "Dữ liệu ổn định"}</span></div>
     </section>
 
     <section className="metric-grid analytics-kpis">
-      <MetricCard label="Học sinh đang học" value={overviewData.activeStudents} caption="Đã xếp lớp trong học kỳ" icon={<Users />} />
-      <MetricCard label="Giáo viên active" value={overviewData.activeTeachers} caption="Đủ quyền truy cập giảng dạy" icon={<UserRoundCheck />} />
-      <MetricCard label="Lớp đang hoạt động" value={overviewData.activeClasses} caption={`${overviewData.activeSubjects} môn học đang mở`} icon={<Boxes />} />
-      <MetricCard label="Điểm trung bình" value={formatScore(academicData.averageNormalizedScore)} caption={`${academicData.publishedGradeCount}/${academicData.totalGradeCount} điểm đã công bố`} icon={<BookOpenCheck />} />
-      <MetricCard label="Tỷ lệ đạt" value={formatPercent(academicData.passRatePercentage)} caption="Điểm Published/Locked từ 5" icon={<BookOpenCheck />} />
-      <MetricCard label="Việc đang chờ xử lý" value={operationalQueueTotal} caption="Hồ sơ, báo cáo, outbox và đồng bộ" icon={<ShieldAlert />} />
+      <ComparisonMetricCard label="Điểm trung bình" metric={advancedData.averageScore} format={formatScore} icon={<BookOpenCheck />} />
+      <ComparisonMetricCard label="Tỷ lệ đạt" metric={advancedData.passRate} format={formatPercent} icon={<BookOpenCheck />} />
+      <ComparisonMetricCard label="Tỷ lệ giỏi" metric={advancedData.excellentRate} format={formatPercent} icon={<BookOpenCheck />} />
+      <ComparisonMetricCard label="Tỷ lệ thiếu điểm" metric={advancedData.missingGradeRate} format={formatPercent} icon={<AlertTriangle />} />
+      <MetricCard label="Cần chú ý" value={advancedData.growth.declinedCount} caption="Học sinh có điểm giảm sút" icon={<ShieldAlert />} />
+      <MetricCard label="Việc chờ xử lý" value={operationalQueueTotal} caption="Hồ sơ, báo cáo, đồng bộ" icon={<ShieldAlert />} />
     </section>
 
     <section className="analytics-work-queue" aria-label="Công việc vận hành cần xử lý">
@@ -71,13 +79,13 @@ export function AdminAnalyticsDashboard() {
 
     <section className="analytics-grid analytics-grid--overview">
       <div className="analytics-panel analytics-panel--feature">
-        <header><div><span>PHÂN BỐ HỌC LỰC</span><h2>Đường cong điểm thang 10</h2><p>Chỉ gồm điểm đã công bố hoặc khóa.</p></div><div className="analytics-panel-stat"><b>{peakGradeBucket.label}</b><small>Dải điểm phổ biến</small></div></header>
+        <header><div><span>PHÂN BỐ HỌC LỰC</span><h2>Phân bổ điểm từ 0 đến 10</h2><p>Chỉ gồm điểm đã công bố hoặc khóa.</p></div><div className="analytics-panel-stat"><b>{peakGradeBucket.label}</b><small>Dải điểm phổ biến</small></div></header>
         <Chart dataSource={academicData.gradeDistribution} height={330} palette={["#227d6b"]}>
           <Animation enabled duration={850} easing="easeOutCubic" />
           <ArgumentAxis valueMarginsEnabled={false}><Label /></ArgumentAxis>
           <ValueAxis allowDecimals={false} />
           <Series argumentField="label" valueField="count" name="Số điểm" type="bar" color="#227d6b" barPadding={0.18} />
-          <Tooltip enabled customizeTooltip={(item) => ({ text: `${String(item.argument)}: ${item.valueText} điểm` })} />
+          <Tooltip enabled customizeTooltip={(item) => ({ text: `${String(item.argument)}: ${item.valueText} bản ghi` })} />
           <Legend visible={false} />
         </Chart>
       </div>
@@ -140,11 +148,8 @@ export function AdminAnalyticsDashboard() {
   </div>;
 }
 
-/** refreshAll làm mới đồng thời ba dataset dashboard sau thao tác của SystemAdmin. */
+/** refreshAll làm mới đồng thời các dataset dashboard sau thao tác của SystemAdmin. */
 function refreshAll(...refetchers: Array<() => Promise<unknown>>) { void Promise.all(refetchers.map((refetch) => refetch())); }
-
-/** semesterLabel tạo nhãn học kỳ dễ nhận biết trong SelectBox. */
-function semesterLabel(item?: { name: string; academicYearName: string }) { return item ? `${item.name} · ${item.academicYearName}` : ""; }
 
 /** formatScore định dạng điểm thang 10 hoặc dấu gạch khi chưa có điểm công bố. */
 function formatScore(value?: number | null) { return value == null ? "—" : value.toFixed(2); }
@@ -154,3 +159,30 @@ function formatPercent(value?: number | null) { return value == null ? "—" : `
 
 /** severityLabel đổi severity kỹ thuật thành nhãn tiếng Việt. */
 function severityLabel(value: string) { return value === "Critical" ? "Nghiêm trọng" : value === "Warning" ? "Cảnh báo" : value; }
+
+/** ComparisonMetricCard hiển thị metric có so sánh xu hướng với học kỳ trước. */
+function ComparisonMetricCard({ label, metric, format, icon }: { label: string; metric: CommonDecimalMetricDto; format: (v?: number | null) => string; icon: React.ReactNode }) {
+  const trendIcon = metric.trend === "UP" ? <TrendingUp size={14} className="text-success" /> : metric.trend === "DOWN" ? <TrendingDown size={14} className="text-danger" /> : <Minus size={14} className="text-muted" />;
+  const deltaColor = metric.trend === "UP" ? "text-success" : metric.trend === "DOWN" ? "text-danger" : "text-muted";
+
+  return (
+    <div className="metric-card analytics-metric-card">
+      <div className="metric-card__icon">{icon}</div>
+      <span>{label}</span>
+      <strong>{format(metric.value)}</strong>
+      <small>
+        {metric.previousValue !== null ? (
+          <span className="comparison-row">
+            {trendIcon}
+            <span className={deltaColor}>
+              {metric.absoluteChange && metric.absoluteChange > 0 ? "+" : ""}{metric.absoluteChange?.toFixed(2)}
+              ({metric.percentageChange && metric.percentageChange > 0 ? "+" : ""}{metric.percentageChange?.toFixed(1)}%)
+            </span>
+          </span>
+        ) : (
+          "Không có dữ liệu đối chiếu"
+        )}
+      </small>
+    </div>
+  );
+}

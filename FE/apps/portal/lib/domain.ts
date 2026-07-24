@@ -44,6 +44,25 @@ export interface AdminAcademicAnalyticsDto { semester: AnalyticsSemesterDto; gen
 export interface AdminDataQualityDto { semester: AnalyticsSemesterDto; generatedAtUtc: string; totalFindings: number; criticalFindings: number; issues: { code: string; title: string; severity: string; count: number }[]; }
 export interface SystemMonitoringDto { generatedAtUtc: string; cache: { hits: number; misses: number; failures: number; hitRatePercentage?: number | null }; hangfire: { servers: number; recurring: number; enqueued: number; scheduled: number; processing: number; succeeded: number; failed: number; deleted: number }; outbox: { pending: number; retried: number; oldestPendingAtUtc?: string | null }; externalSyncs: { status: string; count: number }[]; emailDigests: { status: string; count: number }[]; reportJobs: { status: string; count: number }[]; notificationsLast24Hours: number; }
 
+export interface AdvancedMetricMetadataDto { metricVersion: string; riskModelVersion: string; qualityModelVersion: string; generatedAt: string; }
+export interface CommonDecimalMetricDto { value?: number | null; previousValue?: number | null; absoluteChange?: number | null; percentageChange?: number | null; trend: string; }
+export interface GrowthSummaryDto { totalCount: number; improvedCount: number; stableCount: number; declinedCount: number; meanGrowth?: number | null; medianGrowth?: number | null; }
+export interface DataQualityScoreSummaryDto { overallScore: number; completeness: number; validity: number; consistency: number; integrity: number; uniqueness: number; freshness: number; }
+export interface AdminAdvancedSummaryDto { metadata: AdvancedMetricMetadataDto; averageScore: CommonDecimalMetricDto; passRate: CommonDecimalMetricDto; excellentRate: CommonDecimalMetricDto; missingGradeRate: CommonDecimalMetricDto; growth: GrowthSummaryDto; dataQuality: DataQualityScoreSummaryDto; }
+
+export interface ScoreDistributionMetricsDto { sampleSize: number; mean?: number | null; median?: number | null; min?: number | null; max?: number | null; standardDeviation?: number | null; variance?: number | null; p10?: number | null; q1?: number | null; q3?: number | null; p90?: number | null; interquartileRange?: number | null; }
+export interface ScoreBucketMetricDto { code: string; name: string; count: number; percentage: number; }
+export interface GroupedDistributionItemDto { groupKey: string; groupName: string; metrics: ScoreDistributionMetricsDto; }
+export interface AcademicDistributionDto { metadata: AdvancedMetricMetadataDto; overall: ScoreDistributionMetricsDto; buckets: ScoreBucketMetricDto[]; grouped: GroupedDistributionItemDto[]; }
+
+export interface AcademicTrendPointDto { semesterId: string; semesterName: string; academicYearStart: number; academicYearEnd: number; mean?: number | null; median?: number | null; standardDeviation?: number | null; passRate?: number | null; failureRate?: number | null; missingRate?: number | null; validScoreCount: number; studentCount: number; }
+export interface AcademicTrendDto { metadata: AdvancedMetricMetadataDto; points: AcademicTrendPointDto[]; }
+
+export interface StudentRiskSummaryDto { total: number; low: number; medium: number; high: number; critical: number; }
+export interface StudentRiskReasonDto { code: string; message: string; }
+export interface StudentRiskItemDto { studentId: string; studentCode: string; studentName: string; classId: string; classCode: string; className: string; gradeLevel: number; riskScore: number; riskLevel: string; currentAverage?: number | null; previousAverage?: number | null; growth?: number | null; failedSubjectCount: number; totalSubjectCount: number; missingGradeRate?: number | null; currentPercentileInGrade?: number | null; reasons: StudentRiskReasonDto[]; }
+export interface StudentRiskDto { metadata: AdvancedMetricMetadataDto; summary: StudentRiskSummaryDto; items: StudentRiskItemDto[]; }
+
 /** unwrapData lấy phần data từ ApiResponse chuẩn của backend. */
 export function unwrapData<T>(response: Envelope<T>) { return response.data; }
 
